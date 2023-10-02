@@ -5,10 +5,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/maxence-charriere/go-app/v9/pkg/app"
 	"io"
 	"log"
 	"net/http"
-	"github.com/maxence-charriere/go-app/v9/pkg/app"
 )
 
 type hello struct {
@@ -16,6 +16,14 @@ type hello struct {
 }
 
 type login struct {
+	app.Compo
+}
+
+type loginSuccessfull struct {
+	app.Compo
+}
+
+type loginUnsuccessfull struct {
 	app.Compo
 }
 
@@ -68,10 +76,17 @@ func (c *loginForm) handleSignInClick(ctx app.Context, e app.Event) {
 		fmt.Println(err)
 		return
 	}
-	fmt.Println("response")
-	fmt.Println(response.Status);
-	fmt.Println(response.Header.Get("Content-Type")); 
-	fmt.Println(io.ReadAll(response.Body));
+	if response.StatusCode == 200 {
+		ctx.Navigate("/successfullLogin")
+		fmt.Println("Sign In successfull")
+	} else {
+		ctx.Navigate("/unsuccessfullLogin")
+		responseBody, err := io.ReadAll(response.Body)
+		fmt.Println(string(responseBody))
+		fmt.Println(err)
+		fmt.Println(response)
+	}
+
 }
 
 func (c *hello) handleClick(ctx app.Context, e app.Event) {
@@ -113,9 +128,31 @@ func (h *hello) Render() app.UI {
 		).Class("flex h-screen justify-center items-center bg-gray-100")
 }
 
+func (h *loginSuccessfull) Render() app.UI {
+	return app.Div().
+		Body(
+			app.Link().Rel("stylesheet").Href("https://cdn.jsdelivr.net/npm/tailwindcss@2.2.15/dist/tailwind.min.css"),
+			app.Div().Body(
+				app.H1().Text("Signed in successfully ").Class("text-4xl font-bold text-center"),
+			),
+		).Class("flex h-screen justify-center items-center bg-gray-100")
+}
+
+func (h *loginUnsuccessfull) Render() app.UI {
+	return app.Div().
+		Body(
+			app.Link().Rel("stylesheet").Href("https://cdn.jsdelivr.net/npm/tailwindcss@2.2.15/dist/tailwind.min.css"),
+			app.Div().Body(
+				app.H1().Text("Sign In failed").Class("text-4xl font-bold text-center"),
+			),
+		).Class("flex h-screen justify-center items-center bg-gray-100")
+}
+
 func main() {
 	app.Route("/", &hello{})
 	app.Route("/signIn", &loginForm{})
+	app.Route("/successfullLogin", &loginSuccessfull{})
+	app.Route("/unsuccessfullLogin", &loginUnsuccessfull{})
 	app.RunWhenOnBrowser()
 	http.Handle("/", &app.Handler{
 		Name:        "Hello",
